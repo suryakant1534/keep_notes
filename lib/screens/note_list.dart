@@ -11,6 +11,7 @@ class NoteList extends GetView<NoteListController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: const Drawer(),
       appBar: CustomAppBar.cusAppBar(title: "Notes"),
       body: Obx(
         () => SizedBox(
