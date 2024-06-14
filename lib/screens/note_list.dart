@@ -14,11 +14,8 @@ class NoteList extends GetView<NoteListController> {
       drawer: Align(
         heightFactor: 2.29,
         alignment: Alignment.topLeft,
-        child: Container(
-          height: Get.height * .35,
-          width: Get.width * .4,
-          color: Colors.white,
-          alignment: Alignment.topLeft,
+        child: Drawer(
+          width: Get.width * .59,
         ),
       ),
       appBar: CustomAppBar.cusAppBar(title: "Notes"),
