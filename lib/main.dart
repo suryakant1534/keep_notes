@@ -4,8 +4,11 @@ import 'package:get/get_navigation/src/root/get_material_app.dart';
 import 'package:keep_notes/screens/note_detail.dart';
 import 'package:keep_notes/screens/note_list.dart';
 import 'package:keep_notes/utils/initial_binding.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
@@ -36,4 +39,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
