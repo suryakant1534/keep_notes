@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get_navigation/src/root/get_material_app.dart';
+import 'package:keep_notes/screens/bin_note_detail.dart';
+import 'package:keep_notes/screens/bin_note_list.dart';
 import 'package:keep_notes/screens/note_detail.dart';
 import 'package:keep_notes/screens/note_list.dart';
 import 'package:keep_notes/screens/splash_screen.dart';
@@ -29,6 +31,8 @@ class MyApp extends StatelessWidget {
         "home": (context) => const NoteList(),
         "/": (context) => const SplashScreen(),
         "detail": (context) => const NoteDetail(),
+        'bin': (context) => const BinNoteList(),
+        'bin_detail': (context) => BinNoteDetail(),
       },
       theme: ThemeData(
         primarySwatch: Colors.deepPurple,

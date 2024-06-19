@@ -5,10 +5,12 @@ import 'package:keep_notes/utils/database_helper.dart';
 class NoteListController extends GetxController {
   static NoteListController get to => Get.find<NoteListController>();
 
-  final RxList<Note> notes = <Note>[].obs;
+  final RxList<Note> _notes = <Note>[].obs;
   final RxInt _normalIndex = 0.obs;
   late final DatabaseHelper helper;
   final RxBool _isLoading = false.obs;
+
+  List<Note> get notes => List.from(_notes, growable: false);
 
   bool get isLoading => _isLoading.value;
 
@@ -35,17 +37,17 @@ class NoteListController extends GetxController {
   void deleteNote(Note note) {
     helper.deleteData(note);
     if (note.priority == 2) {
-      _normalIndex(_normalIndex.value-1);
+      _normalIndex(_normalIndex.value - 1);
     }
-    notes.remove(note);
+    _notes.remove(note);
   }
 
   void addNote(Note note) {
     if (note.priority == 2) {
-      notes.insert(0, note);
-      _normalIndex(_normalIndex.value+1);
+      _notes.insert(0, note);
+      _normalIndex(_normalIndex.value + 1);
       return;
     }
-    notes.insert(_normalIndex.value, note);
+    _notes.insert(_normalIndex.value, note);
   }
 }

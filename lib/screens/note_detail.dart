@@ -16,7 +16,7 @@ class _NoteDetailState extends State<NoteDetail> {
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
   Note? note;
   bool isNew = false;
-  late final int currentIndex;
+  late int currentIndex;
 
   _submit() {
     final String result;
@@ -45,7 +45,7 @@ class _NoteDetailState extends State<NoteDetail> {
           dateTime: dateTime,
           priority: priority,
         );
-        result = "Note is successfully updated." ;
+        result = "Note is successfully updated.";
       }
       controller.submit(note!, isNew, currentIndex);
       Get.back(result: result);
@@ -105,14 +105,11 @@ class _NoteDetailState extends State<NoteDetail> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 child: TextFormField(
+                  textInputAction: TextInputAction.next,
                   onTapOutside: (_) {
                     Get.focusScope?.unfocus();
                   },
                   controller: controller.titleController,
-                  onFieldSubmitted: (_) {
-                    Get.focusScope
-                        ?.requestFocus(controller.descriptionFocusScope);
-                  },
                   decoration: InputDecoration(
                     labelText: 'Title',
                     border: OutlineInputBorder(
@@ -133,7 +130,6 @@ class _NoteDetailState extends State<NoteDetail> {
                   onTapOutside: (_) {
                     Get.focusScope?.unfocus();
                   },
-                  focusNode: controller.descriptionFocusScope,
                   controller: controller.descriptionController,
                   maxLines: 6,
                   decoration: InputDecoration(

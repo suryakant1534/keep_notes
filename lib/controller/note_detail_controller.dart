@@ -11,7 +11,6 @@ class NoteDetailController extends GetxController {
   late final TextEditingController titleController;
   late final TextEditingController descriptionController;
   final RxString _priorityValue = 'Low'.obs;
-  final FocusNode descriptionFocusScope = FocusNode();
   final List<String> _priorities = List.from(['Low', 'High'], growable: false);
 
   List<String> get priorities => _priorities;

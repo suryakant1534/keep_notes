@@ -1,5 +1,5 @@
 class Note {
-  late final int id;
+  late int id;
   final String title;
   final String description;
   final String dateTime;
@@ -38,4 +38,9 @@ class Note {
         description = map['description'],
         dateTime = map['dateTime'],
         priority = map['priority'];
+
+  @override
+  String toString() {
+    return 'Note{id: $id, title: $title, description: $description, dateTime: $dateTime, priority: $priority}\n';
+  }
 }
