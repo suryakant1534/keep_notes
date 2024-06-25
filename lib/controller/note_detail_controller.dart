@@ -1,3 +1,4 @@
+import 'package:keep_notes/utils/firebase_helper.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:keep_notes/controller/note_list_controller.dart';
@@ -7,11 +8,14 @@ import 'package:keep_notes/utils/database_helper.dart';
 class NoteDetailController extends GetxController {
   static NoteDetailController get to => Get.find<NoteDetailController>();
 
-  late final DatabaseHelper helper;
+  late final DatabaseHelper databaseHelper;
   late final TextEditingController titleController;
   late final TextEditingController descriptionController;
   final RxString _priorityValue = 'Low'.obs;
   final List<String> _priorities = List.from(['Low', 'High'], growable: false);
+  final FirebaseHelper _firebaseHelper = FirebaseHelper();
+
+  NoteListController get _noteListController => NoteListController.to;
 
   List<String> get priorities => _priorities;
 
@@ -26,25 +30,38 @@ class NoteDetailController extends GetxController {
   }
 
   void _initialized() {
-    helper = DatabaseHelper();
+    databaseHelper = DatabaseHelper();
     titleController = TextEditingController();
     descriptionController = TextEditingController();
   }
 
-  void submit(Note note, bool isNew, [int? index]) {
-    if (isNew) {
-      helper.insertData(note);
+  void submit(Note note, bool isNew, [int? index]) async {
+    if (_noteListController.isLogin) {
+      if (await _noteListController.isInternetAvailable) {
+        isNew
+            ? _firebaseHelper.insert(note: note)
+            : await _firebaseHelper.update(note);
+      } else {
+        // Todo:- store data when internet is available.
+      }
     } else {
-      helper.updateData(note);
+      await _addNoteOnLocalDatabase(note, isNew, index);
+    }
+  }
+
+  _addNoteOnLocalDatabase(Note note, bool isNew, [int? index]) async {
+    if (isNew) {
+      await databaseHelper.insertData(note);
+    } else {
+      await databaseHelper.updateData(note);
       Note oldNote = NoteListController.to.notes[index!];
-      NoteListController.to.deleteNote(oldNote);
+      NoteListController.to.removeNote(oldNote);
     }
 
     NoteListController.to.addNote(note);
   }
 
   void deleteNote(Note note) {
-    helper.deleteData(note);
-    NoteListController.to.deleteNote(note);
+    _noteListController.deleteNote(note);
   }
 }

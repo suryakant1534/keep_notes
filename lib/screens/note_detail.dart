@@ -18,7 +18,7 @@ class _NoteDetailState extends State<NoteDetail> {
   bool isNew = false;
   late int currentIndex;
 
-  _submit() {
+  _submit() async {
     final String result;
     if (formKey.currentState!.validate()) {
       final String title, description, dateTime;
@@ -44,6 +44,7 @@ class _NoteDetailState extends State<NoteDetail> {
           description: description,
           dateTime: dateTime,
           priority: priority,
+          firebaseId: note!.firebaseId,
         );
         result = "Note is successfully updated.";
       }

@@ -16,7 +16,7 @@ class _BinNoteListState extends State<BinNoteList> {
 
   @override
   void initState() {
-    controller.fetchData();
+    if (!controller.isLogin) controller.fetchData();
     super.initState();
   }
 
@@ -108,13 +108,21 @@ class _BinNoteListState extends State<BinNoteList> {
                   Obx(
                     () => controller.isSelectActive
                         ? Checkbox(
-                            value: controller.selectedNote.containsKey(note.id),
+                            value: controller.selectedNote.containsKey(
+                                controller.isLogin
+                                    ? note.firebaseId
+                                    : note.id.toString()),
                             onChanged: (value) {
                               if (value != null) {
                                 if (value) {
-                                  controller.selectedNote[note.id] = note;
+                                  controller.selectedNote[controller.isLogin
+                                      ? note.firebaseId!
+                                      : note.id.toString()] = note;
                                 } else {
-                                  controller.selectedNote.remove(note.id);
+                                  controller.selectedNote.remove(
+                                      controller.isLogin
+                                          ? note.firebaseId!
+                                          : note.id.toString());
                                 }
                               }
                               controller.check;
@@ -129,7 +137,9 @@ class _BinNoteListState extends State<BinNoteList> {
                           if (controller.selectedNote.containsKey(note.id)) {
                             controller.selectedNote.remove(note.id);
                           } else {
-                            controller.selectedNote[note.id] = note;
+                            controller.selectedNote[controller.isLogin
+                                ? note.firebaseId!
+                                : note.id.toString()] = note;
                           }
                         } else {
                           final String? result = (await Get.toNamed(
@@ -168,9 +178,9 @@ class _BinNoteListState extends State<BinNoteList> {
                       },
                       leading: CircleAvatar(
                         backgroundColor:
-                            note.id == 1 ? Colors.yellow : Colors.red,
+                            note.priority == 1 ? Colors.yellow : Colors.red,
                         child: Icon(
-                          note.id == 1
+                          note.priority == 1
                               ? Icons.keyboard_arrow_right
                               : Icons.play_arrow,
                         ),

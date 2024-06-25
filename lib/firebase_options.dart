@@ -60,6 +60,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '130978805660',
     projectId: 'keep-notes-8e443',
     storageBucket: 'keep-notes-8e443.appspot.com',
+    androidClientId: '130978805660-q76beh7ufvh3c5rec1o0dpaq459h8gdh.apps.googleusercontent.com',
+    iosClientId: '130978805660-m2acpbd40jbp6u5okgo3prj7c35skgpd.apps.googleusercontent.com',
     iosBundleId: 'com.example.keepNotes',
   );
 
@@ -72,4 +74,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'keep-notes-8e443.appspot.com',
     measurementId: 'G-9SHKNXBZBJ',
   );
+
 }

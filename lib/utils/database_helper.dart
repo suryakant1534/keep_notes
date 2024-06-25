@@ -41,7 +41,8 @@ class DatabaseHelper {
           title TEXT NOT NULL,
           description TEXT NOT NULL,
           dateTime TEXT NOT NULL,
-          priority INTEGER NOT NULL
+          priority INTEGER NOT NULL,
+          firebaseId TEXT NULL
           )""";
       await db.execute(sql);
     });
@@ -56,13 +57,14 @@ class DatabaseHelper {
   }
 
   insertData(Note note, [bool isBin = false]) async {
-    final String sql;
-    Database database = await _getDatabase(isBin);
+    final database = await _getDatabase(isBin);
 
-    sql = """
-      INSERT INTO note(title, description, dateTime, priority)
+    final String sql = """
+      INSERT INTO note(title, description, dateTime, priority ${_getFirebaseField(note)})
       VALUES (
-      '${note.title}', '${note.description}', '${note.dateTime}', ${note.priority}
+      '${note.title}', '${note.description}',
+      '${note.dateTime}', ${note.priority}
+      ${_getFirebaseValue(note)}
       )""";
 
     await database.transaction((txn) async {
@@ -71,6 +73,14 @@ class DatabaseHelper {
 
       return id;
     });
+  }
+
+  String _getFirebaseField(Note note) {
+    return note.firebaseId == null ? "" : ", firebaseId";
+  }
+
+  String _getFirebaseValue(Note note) {
+    return note.firebaseId == null ? "" : ", '${note.firebaseId!}'";
   }
 
   updateData(Note note) async {
@@ -124,5 +134,13 @@ class DatabaseHelper {
     Database database = await _getDatabase(isBin ?? false);
     final List<Map<String, dynamic>> data = await database.rawQuery(sql);
     return data;
+  }
+
+  clearAllData() async {
+    const String sql = "DELETE FROM note WHERE id > 0";
+    Database database = await _getDatabase(false);
+    await database.transaction((txn) async => await txn.rawDelete(sql));
+    database = await _getDatabase(true);
+    await database.transaction((txn) async => await txn.rawDelete(sql));
   }
 }

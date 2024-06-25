@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:keep_notes/controller/note_list_controller.dart';
 import 'package:keep_notes/models/note.dart';
@@ -17,7 +18,7 @@ class NoteList extends GetView<NoteListController> {
         child: SafeArea(
           child: Drawer(
             width: Get.width * .65,
-            child: _getDrawerBody(),
+            child: _getDrawerBody(context),
           ),
         ),
       ),
@@ -75,9 +76,9 @@ class NoteList extends GetView<NoteListController> {
             title: Text(note.title, style: textStyle),
             subtitle: Text(note.dateTime),
             trailing: IconButton(
-              onPressed: () {
-                controller.deleteNote(note);
-                _showSnackBar(context);
+              onPressed: () async {
+                await controller.deleteNote(note);
+                if (context.mounted) _showSnackBar(context);
               },
               icon: const Icon(Icons.delete),
             ),
@@ -88,7 +89,7 @@ class NoteList extends GetView<NoteListController> {
   }
 
   void _showAlertDialog(BuildContext context, String content) {
-    if (content.toLowerCase() == "null") return;
+    if (content.toLowerCase() == "null" || content.isEmpty) return;
     TextStyle textStyle = const TextStyle(
       color: Colors.deepPurple,
       fontSize: 16,
@@ -121,7 +122,7 @@ class NoteList extends GetView<NoteListController> {
   void _showSnackBar(BuildContext context) {
     SnackBar snackBar = SnackBar(
       backgroundColor: Colors.deepPurple,
-      content: const Text("Note is successfully deleted."),
+      content: const Text("Note Moved to Bin."),
       action: SnackBarAction(
         backgroundColor: Colors.deepOrangeAccent,
         label: 'Close',
@@ -133,7 +134,7 @@ class NoteList extends GetView<NoteListController> {
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
-  _getDrawerBody() {
+  _getDrawerBody(BuildContext context) {
     return Column(
       children: [
         Align(
@@ -149,9 +150,20 @@ class NoteList extends GetView<NoteListController> {
             ),
           ),
         ),
-        CircleAvatar(
-          backgroundImage: const AssetImage("assets/guest.jpg"),
-          radius: Get.width * .1,
+        Obx(
+          () {
+            if (!controller.isLogin) {
+              return CircleAvatar(
+                backgroundImage: AssetImage(controller.userImage),
+                radius: Get.width * .1,
+              );
+            } else {
+              return CircleAvatar(
+                backgroundImage: NetworkImage(controller.userImage),
+                radius: Get.width * .1,
+              );
+            }
+          },
         ),
         const Text(
           "Guest",
@@ -161,33 +173,71 @@ class NoteList extends GetView<NoteListController> {
             color: Colors.deepPurple,
           ),
         ),
-        Obx(() => controller.notes.isNotEmpty
-            ? MaterialButton(
-                onPressed: () {},
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+        Obx(() {
+          if (controller.isLogin) return const SizedBox();
+          return controller.notes.isNotEmpty
+              ? MaterialButton(
+                  onPressed: () async {
+                    final notes = controller.notes;
+                    Get.back();
+                    _showProgressIndicator(context);
+                    await controller.login();
+                    if (!controller.isLogin && controller.isFailedLogin) {
+                      Get.back();
+                      if (context.mounted) {
+                        _showAlertDialog(context, controller.errorMessage);
+                      }
+                    } else {
+                      await controller.syncNow(notes);
+                      Get.back();
+                      if (context.mounted) {
+                        _showAlertDialog(context, "Data sync successfully.");
+                      }
+                      await HapticFeedback.vibrate();
+                    }
+                  },
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  color: Colors.green,
+                  child: const Text(
+                    "Sync Now",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                )
+              : const SizedBox();
+        }),
+        Obx(
+          () => controller.isLogin
+              ? const SizedBox()
+              : MaterialButton(
+                  onPressed: () async {
+                    Get.back();
+                    _showProgressIndicator(context);
+                    await controller.login();
+                    Get.back();
+                    if (!controller.isLogin && controller.isFailedLogin) {
+                      if (context.mounted) {
+                        _showAlertDialog(context, controller.errorMessage);
+                      }
+                    } else {
+                      await HapticFeedback.vibrate();
+                    }
+                  },
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  color: Colors.deepPurple,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      const Text("Login with",
+                          style: TextStyle(color: Colors.white)),
+                      Image.asset("assets/google_icon.png"),
+                    ],
+                  ),
                 ),
-                color: Colors.green,
-                child: const Text(
-                  "Sync Now",
-                  style: TextStyle(color: Colors.white),
-                ),
-              )
-            : const SizedBox()),
-        MaterialButton(
-          onPressed: () {},
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          color: Colors.deepPurple,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              const Text("Login with", style: TextStyle(color: Colors.white)),
-              Image.asset("assets/google_icon.png"),
-            ],
-          ),
         ),
         Container(
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -220,6 +270,23 @@ class NoteList extends GetView<NoteListController> {
             ),
           ),
         ),
+        const Spacer(),
+        Obx(
+          () => controller.isLogin
+              ? MaterialButton(
+                  onPressed: () async {
+                    await controller.logout();
+                    await HapticFeedback.vibrate();
+                  },
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  color: Colors.redAccent,
+                  child: const Text("Logout",
+                      style: TextStyle(color: Colors.white)),
+                )
+              : const SizedBox(),
+        ),
       ],
     );
   }
@@ -240,6 +307,24 @@ class NoteList extends GetView<NoteListController> {
               color: Colors.deepPurple),
         ),
       ),
+    );
+  }
+
+  void _showProgressIndicator(BuildContext context) {
+    const dialog = AlertDialog(
+      title: Text("Please Wait..", style: TextStyle(color: Colors.deepPurple)),
+      content: SizedBox(
+        height: 100,
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      ),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => dialog,
+      barrierDismissible: false,
     );
   }
 }
