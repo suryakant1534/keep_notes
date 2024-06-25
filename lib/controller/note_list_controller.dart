@@ -61,8 +61,8 @@ class NoteListController extends GetxController {
   deleteNote(Note note) async {
     if (isLogin) {
       if (await isInternetAvailable) {
-        await _firebaseHelper.delete(note: note);
         await _firebaseHelper.insert(note: note, wantToInsertIntoBin: true);
+        await _firebaseHelper.delete(note: note);
       } else {
         // todo:- apple logic when data is not on and try to delete.
       }

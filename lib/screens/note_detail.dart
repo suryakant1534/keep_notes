@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:keep_notes/controller/note_detail_controller.dart';
 import 'package:keep_notes/models/note.dart';
+import 'package:keep_notes/widgets/cus_progress_indicator.dart';
 import 'package:keep_notes/widgets/custom_app_bar.dart';
 
 class NoteDetail extends StatefulWidget {
@@ -48,7 +49,11 @@ class _NoteDetailState extends State<NoteDetail> {
         );
         result = "Note is successfully updated.";
       }
-      controller.submit(note!, isNew, currentIndex);
+
+      CusProgressIndicator.show(context);
+      await controller.submit(note!, isNew, currentIndex);
+      CusProgressIndicator.close();
+
       Get.back(result: result);
     }
   }
@@ -174,7 +179,7 @@ class _NoteDetailState extends State<NoteDetail> {
                     Expanded(
                       child: MaterialButton(
                         color: Colors.deepPurple,
-                        onPressed: () {
+                        onPressed: () async {
                           if (isNew) {
                             controller.titleController.clear();
                             controller.descriptionController.clear();
@@ -182,7 +187,10 @@ class _NoteDetailState extends State<NoteDetail> {
                             return;
                           }
 
-                          controller.deleteNote(note!);
+                          CusProgressIndicator.show(context);
+                          await controller.deleteNote(note!);
+                          CusProgressIndicator.close();
+
                           Get.back(result: "Note is successfully deleted.");
                         },
                         child: Text(

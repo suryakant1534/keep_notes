@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:keep_notes/controller/bin_note_list_controller.dart';
 import 'package:keep_notes/models/note.dart';
+import 'package:keep_notes/widgets/cus_progress_indicator.dart';
 import 'package:keep_notes/widgets/custom_app_bar.dart';
 
 class BinNoteList extends StatefulWidget {
@@ -193,8 +194,10 @@ class _BinNoteListState extends State<BinNoteList> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   IconButton(
-                                    onPressed: () {
-                                      controller.restoreData(note);
+                                    onPressed: () async {
+                                      CusProgressIndicator.show(context);
+                                      await controller.restoreData(note);
+                                      CusProgressIndicator.close();
                                       _getSnackBar("Restored");
                                     },
                                     icon: const Icon(
@@ -230,7 +233,9 @@ class _BinNoteListState extends State<BinNoteList> {
                   children: [
                     FloatingActionButton(
                       onPressed: () async {
+                        CusProgressIndicator.show(context);
                         await controller.restoreData();
+                        CusProgressIndicator.close();
                         _getSnackBar("Restore");
                       },
                       tooltip: "Restore",
@@ -311,7 +316,9 @@ class _BinNoteListState extends State<BinNoteList> {
                   child: GestureDetector(
                     onTap: () async {
                       Get.back();
-                      controller.deleteNotes(note);
+                      CusProgressIndicator.show(context);
+                      await controller.deleteNotes(note);
+                      CusProgressIndicator.close();
                       _getSnackBar();
                     },
                     child: const Text(

@@ -35,7 +35,7 @@ class NoteDetailController extends GetxController {
     descriptionController = TextEditingController();
   }
 
-  void submit(Note note, bool isNew, [int? index]) async {
+  Future<void> submit(Note note, bool isNew, [int? index]) async {
     if (_noteListController.isLogin) {
       if (await _noteListController.isInternetAvailable) {
         isNew
@@ -61,7 +61,7 @@ class NoteDetailController extends GetxController {
     NoteListController.to.addNote(note);
   }
 
-  void deleteNote(Note note) {
-    _noteListController.deleteNote(note);
+  Future<void> deleteNote(Note note) async {
+    await _noteListController.deleteNote(note);
   }
 }

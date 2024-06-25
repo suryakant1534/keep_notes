@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:keep_notes/controller/note_list_controller.dart';
 import 'package:keep_notes/models/note.dart';
+import 'package:keep_notes/widgets/cus_progress_indicator.dart';
 import 'package:keep_notes/widgets/custom_app_bar.dart';
 
 class NoteList extends GetView<NoteListController> {
@@ -77,7 +78,9 @@ class NoteList extends GetView<NoteListController> {
             subtitle: Text(note.dateTime),
             trailing: IconButton(
               onPressed: () async {
+                CusProgressIndicator.show(context);
                 await controller.deleteNote(note);
+                CusProgressIndicator.close();
                 if (context.mounted) _showSnackBar(context);
               },
               icon: const Icon(Icons.delete),

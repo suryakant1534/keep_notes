@@ -31,7 +31,7 @@ class FirebaseHelper {
     required Note note,
     bool wantToInsertIntoBin = false,
   }) async {
-    note.firebaseId = _firebaseId(wantToInsertIntoBin);
+    note.firebaseId ??= _firebaseId(wantToInsertIntoBin);
     await _reference(wantToUseBin: wantToInsertIntoBin)
         .doc(note.firebaseId)
         .set(note.toMap());
@@ -58,8 +58,8 @@ class FirebaseHelper {
 
   Future<void> restore({Note? note, List<Note>? notes}) async {
     if (note != null) {
-      await delete(note: note, wantToDeleteFromBin: true);
       await insert(note: note);
+      await delete(note: note, wantToDeleteFromBin: true);
     } else if (notes != null) {
       for (Note note in notes) {
         await restore(note: note);

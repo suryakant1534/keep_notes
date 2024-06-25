@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:keep_notes/controller/bin_note_list_controller.dart';
 import 'package:keep_notes/models/note.dart';
+import 'package:keep_notes/widgets/cus_progress_indicator.dart';
 import 'package:keep_notes/widgets/custom_app_bar.dart';
 
 class BinNoteDetail extends StatelessWidget {
@@ -24,15 +25,19 @@ class BinNoteDetail extends StatelessWidget {
           title: "Deleted Note Detail",
           actions: [
             IconButton(
-              onPressed: () {
-                controller.restoreData(note);
+              onPressed: () async {
+                CusProgressIndicator.show(context);
+                await controller.restoreData(note);
+                CusProgressIndicator.close();
                 Get.back(result: "Note Restore Successfully.");
               },
               icon: const Icon(Icons.restore, color: Colors.green),
             ),
             IconButton(
-              onPressed: () {
-                controller.deleteNotes(note);
+              onPressed: () async {
+                CusProgressIndicator.show(context);
+                await controller.deleteNotes(note);
+                CusProgressIndicator.close();
                 Get.back(result: "Note Deleted Successfully");
               },
               icon: const Icon(Icons.delete, color: Colors.red),
