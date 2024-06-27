@@ -35,6 +35,7 @@ class MyApp extends StatelessWidget {
         'bin_detail': (context) => BinNoteDetail(),
       },
       theme: ThemeData(
+        useMaterial3: true,
         primarySwatch: Colors.deepPurple,
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.deepPurple,

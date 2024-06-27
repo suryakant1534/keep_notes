@@ -73,4 +73,14 @@ flutter {
 dependencies {
     implementation platform('com.google.firebase:firebase-bom:33.1.0')
     implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.android.material:material:1.12.0'
+}
+android.applicationVariants.all { variant ->
+    variant.outputs.all { output ->
+        def builtType = variant.buildType.name
+        def versionName = variant.versionName
+        def versionCode = variant.versionCode
+        def flavor = variant.flavorName
+        outputFileName = "keep_notes-${flavor}-${builtType}-${versionName}-${versionCode}.apk"
+    }
 }
