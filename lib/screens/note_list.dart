@@ -171,12 +171,14 @@ class NoteList extends GetView<NoteListController> {
             }
           },
         ),
-        const Text(
-          "Guest",
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.deepPurple,
+        Obx(
+          () => Text(
+            controller.isLogin ? controller.userName : "Guest",
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.deepPurple,
+            ),
           ),
         ),
         Obx(() {

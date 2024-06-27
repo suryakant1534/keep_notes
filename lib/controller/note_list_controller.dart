@@ -35,6 +35,9 @@ class NoteListController extends GetxController {
 
   bool get isLogin => _initialController.isLoggedIn;
 
+  String get userName =>
+      _firebaseHelper.user?.displayName.toString() ?? "Guest";
+
   String get userImage => _userImage.value;
 
   set userImage(String userImage) => _userImage(userImage);
