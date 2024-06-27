@@ -62,13 +62,13 @@ class DatabaseHelper {
     final String sql = """
       INSERT INTO note(title, description, dateTime, priority ${_getFirebaseField(note)})
       VALUES (
-      '${note.title}', '${note.description}',
+      ?, ?,
       '${note.dateTime}', ${note.priority}
       ${_getFirebaseValue(note)}
       )""";
 
     await database.transaction((txn) async {
-      final int id = await txn.rawInsert(sql);
+      final int id = await txn.rawInsert(sql, [note.title, note.description]);
       note.setId = id;
 
       return id;
@@ -86,14 +86,14 @@ class DatabaseHelper {
   updateData(Note note) async {
     final String sql = """
     UPDATE note SET
-    title = '${note.title}', description = '${note.description}',
+    title = ?, description = ?,
     dateTime = '${note.dateTime}', priority = ${note.priority}
     WHERE id = ${note.id}
     """;
     Database database = await DatabaseHelper.database;
 
     await database.transaction((txn) async {
-      int row = await txn.rawUpdate(sql);
+      int row = await txn.rawUpdate(sql, [note.title, note.description]);
 
       return row;
     });
