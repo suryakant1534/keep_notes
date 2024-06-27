@@ -1,31 +1,36 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 
-class CusProgressIndicator {
-  static BuildContext? _context;
+typedef LoadMethod = Future<void> Function();
 
-  static void show(BuildContext context) {
-    showCupertinoDialog(
+class CusProgressIndicator {
+  final StreamController<BuildContext> _controller = StreamController();
+
+  Future<void> showIndicator(BuildContext context) async {
+    await showCupertinoDialog(
       context: context,
       builder: (context) {
-        _context = context;
+        _controller.add(context);
         return const PopScope(
           canPop: false,
           child: CupertinoActivityIndicator(radius: 20),
         );
       },
-    ).then((_) {
-      _context = null;
+    );
+  }
+
+  CusProgressIndicator._(LoadMethod futureMethod) {
+    _controller.stream.listen((BuildContext context) async {
+        await futureMethod();
+        if (context.mounted) Navigator.pop(context);
+        await _controller.close();
     });
   }
 
-  static void close() {
-    if (_context == null) {
-      throw "Please call before 'CusProgressIndicator.show()'";
-    }
-    Navigator.pop(_context!);
+  static Future<void> show(BuildContext context,
+      {required LoadMethod futureMethod}) async {
+    final obj = CusProgressIndicator._(futureMethod);
+    await obj.showIndicator(context);
   }
-
-  static bool canClose() => _context != null;
-
-  CusProgressIndicator._();
 }

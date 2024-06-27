@@ -20,6 +20,7 @@ class _NoteDetailState extends State<NoteDetail> {
   late int currentIndex;
 
   _submit() async {
+    Note? oldNote = note;
     final String result;
     if (formKey.currentState!.validate()) {
       final String title, description, dateTime;
@@ -49,10 +50,26 @@ class _NoteDetailState extends State<NoteDetail> {
         );
         result = "Note is successfully updated.";
       }
-
-      CusProgressIndicator.show(context);
-      await controller.submit(note!, isNew, currentIndex);
-      CusProgressIndicator.close();
+      if (!isNew) {
+        if (oldNote == note) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Colors.deepPurple,
+              content: Text(
+                "Data is already updated..",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          );
+          return;
+        }
+      }
+      await CusProgressIndicator.show(
+        context,
+        futureMethod: () async {
+          await controller.submit(note!, isNew, currentIndex);
+        },
+      );
 
       Get.back(result: result);
     }
@@ -187,9 +204,12 @@ class _NoteDetailState extends State<NoteDetail> {
                             return;
                           }
 
-                          CusProgressIndicator.show(context);
-                          await controller.deleteNote(note!);
-                          CusProgressIndicator.close();
+                          await CusProgressIndicator.show(
+                            context,
+                            futureMethod: () async {
+                              await controller.deleteNote(note!);
+                            },
+                          );
 
                           Get.back(result: "Note is successfully deleted.");
                         },

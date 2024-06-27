@@ -195,9 +195,11 @@ class _BinNoteListState extends State<BinNoteList> {
                                 children: [
                                   IconButton(
                                     onPressed: () async {
-                                      CusProgressIndicator.show(context);
-                                      await controller.restoreData(note);
-                                      CusProgressIndicator.close();
+                                      await CusProgressIndicator.show(
+                                        context,
+                                        futureMethod: () async =>
+                                            await controller.restoreData(note),
+                                      );
                                       _getSnackBar("Restored");
                                     },
                                     icon: const Icon(
@@ -233,9 +235,11 @@ class _BinNoteListState extends State<BinNoteList> {
                   children: [
                     FloatingActionButton(
                       onPressed: () async {
-                        CusProgressIndicator.show(context);
-                        await controller.restoreData();
-                        CusProgressIndicator.close();
+                        await CusProgressIndicator.show(
+                          context,
+                          futureMethod: () async =>
+                              await controller.restoreData(),
+                        );
                         _getSnackBar("Restore");
                       },
                       tooltip: "Restore",
@@ -316,9 +320,11 @@ class _BinNoteListState extends State<BinNoteList> {
                   child: GestureDetector(
                     onTap: () async {
                       Get.back();
-                      CusProgressIndicator.show(context);
-                      await controller.deleteNotes(note);
-                      CusProgressIndicator.close();
+                      await CusProgressIndicator.show(
+                        context,
+                        futureMethod: () async =>
+                            await controller.deleteNotes(note),
+                      );
                       _getSnackBar();
                     },
                     child: const Text(

@@ -47,4 +47,30 @@ class Note {
   String toString() {
     return 'Note{id: $id, title: $title, description: $description, dateTime: $dateTime, priority: $priority, firebaseId: $firebaseId}';
   }
+
+  bool equal(Note note) {
+    return true;
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (other is! Note) return false;
+    if (other.runtimeType != runtimeType) return false;
+    if (other.firebaseId != firebaseId) return false;
+    if (other.title != title) return false;
+    if (other.priority != priority) return false;
+    if (other.description != description) return false;
+
+    return true;
+  }
+
+  @override
+  int get hashCode {
+    int value = 0;
+    value += firebaseId.hashCode;
+    value += title.hashCode;
+    value += priority.hashCode;
+    value += description.hashCode;
+    return value.hashCode;
+  }
 }

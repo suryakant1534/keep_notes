@@ -58,7 +58,7 @@ class NoteListController extends GetxController {
     }
   }
 
-  deleteNote(Note note) async {
+  Future<void> deleteNote(Note note) async {
     if (isLogin) {
       if (await isInternetAvailable) {
         await _firebaseHelper.insert(note: note, wantToInsertIntoBin: true);

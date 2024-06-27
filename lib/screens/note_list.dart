@@ -78,9 +78,12 @@ class NoteList extends GetView<NoteListController> {
             subtitle: Text(note.dateTime),
             trailing: IconButton(
               onPressed: () async {
-                CusProgressIndicator.show(context);
-                await controller.deleteNote(note);
-                CusProgressIndicator.close();
+                await CusProgressIndicator.show(
+                  context,
+                  futureMethod: () async {
+                    await controller.deleteNote(note);
+                  },
+                );
                 if (context.mounted) _showSnackBar(context);
               },
               icon: const Icon(Icons.delete),

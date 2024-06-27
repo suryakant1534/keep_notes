@@ -115,7 +115,7 @@ class DatabaseHelper {
     await database.transaction((txn) async {
       int row = await txn.rawDelete(sql ?? "");
       if (!isBin && note != null) {
-        insertData(note, true);
+        await insertData(note, true);
       }
       return row;
     });

@@ -74,7 +74,7 @@ class BinNoteListController extends GetxController {
     _isSelectAll(_selectedNote.length == _notes.length);
   }
 
-  deleteNotes([Note? note]) async {
+  Future<void> deleteNotes([Note? note]) async {
     _isSelectActive(false);
     if (NoteListController.to.isLogin) {
       if (await CheckNetwork.isInternetAvailable()) {
@@ -100,7 +100,7 @@ class BinNoteListController extends GetxController {
         } else {
           final List<Note> notes = List.empty(growable: true);
           notes.addAll(selectedNote.values);
-          _databaseHelper.deleteData(null, true, notes);
+          await _databaseHelper.deleteData(null, true, notes);
           selectedNote.forEach((key, value) {
             _notes.remove(value);
           });
@@ -109,7 +109,7 @@ class BinNoteListController extends GetxController {
     }
   }
 
-  restoreData([Note? note]) async {
+  Future<void> restoreData([Note? note]) async {
     _isSelectActive(false);
     if (NoteListController.to.isLogin) {
       if (await CheckNetwork.isInternetAvailable()) {

@@ -26,18 +26,20 @@ class BinNoteDetail extends StatelessWidget {
           actions: [
             IconButton(
               onPressed: () async {
-                CusProgressIndicator.show(context);
-                await controller.restoreData(note);
-                CusProgressIndicator.close();
+                await CusProgressIndicator.show(
+                  context,
+                  futureMethod: () async => await controller.restoreData(note),
+                );
                 Get.back(result: "Note Restore Successfully.");
               },
               icon: const Icon(Icons.restore, color: Colors.green),
             ),
             IconButton(
               onPressed: () async {
-                CusProgressIndicator.show(context);
-                await controller.deleteNotes(note);
-                CusProgressIndicator.close();
+                await CusProgressIndicator.show(
+                  context,
+                  futureMethod: () async => await controller.deleteNotes(note),
+                );
                 Get.back(result: "Note Deleted Successfully");
               },
               icon: const Icon(Icons.delete, color: Colors.red),
