@@ -1,8 +1,19 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:keep_notes/models/note.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:keep_notes/firebase_options.dart';
 
 class FirebaseHelper {
+  static Future<FirebaseHelper> get getObj async {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+    return FirebaseHelper();
+  }
+
   static FirebaseHelper? _instance;
 
   FirebaseHelper._createInstance();
@@ -24,21 +35,21 @@ class FirebaseHelper {
           {bool wantToUseBin = false}) =>
       _firestore.collection(wantToUseBin ? _binNotesUrl : _notesUrl);
 
-  String _firebaseId(bool wantToUseBin) =>
-      _reference(wantToUseBin: wantToUseBin).doc().id;
+  String getFirebaseId() => _reference().doc().id;
 
   Future<void> insert({
     required Note note,
     bool wantToInsertIntoBin = false,
   }) async {
-    note.firebaseId ??= _firebaseId(wantToInsertIntoBin);
     await _reference(wantToUseBin: wantToInsertIntoBin)
         .doc(note.firebaseId)
         .set(note.toMap());
   }
 
-  Future<void> update(Note note) async {
-    await _reference().doc(note.firebaseId).set(note.toMap());
+  Future<void> update(Note note, {bool wantToUpdateIntoBin = false}) async {
+    await _reference(wantToUseBin: wantToUpdateIntoBin)
+        .doc(note.firebaseId)
+        .set(note.toMap());
   }
 
   Future<void> delete({

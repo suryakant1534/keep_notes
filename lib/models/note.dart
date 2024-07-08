@@ -1,16 +1,17 @@
 class Note {
-  int id = -1;
+  late int id;
   final String title;
   final String description;
   final String dateTime;
   final int priority;
-  String? firebaseId;
+  final String firebaseId;
 
   Note({
     required this.title,
     required this.description,
     required this.dateTime,
     required this.priority,
+    required this.firebaseId,
   });
 
   set setId(int id) => this.id = id;
@@ -56,7 +57,6 @@ class Note {
   bool operator ==(Object other) {
     if (other is! Note) return false;
     if (other.runtimeType != runtimeType) return false;
-    if (other.firebaseId != firebaseId) return false;
     if (other.title != title) return false;
     if (other.priority != priority) return false;
     if (other.description != description) return false;

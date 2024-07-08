@@ -50,21 +50,17 @@ class DatabaseHelper {
     return database;
   }
 
-  Future<Database> _getDatabase(bool isBin) async {
-    Database db =
-        await (isBin ? DatabaseHelper.binDatabase : DatabaseHelper.database);
-    return db;
-  }
+  Future<Database> _getDatabase({bool isBin = false}) async =>
+      await (isBin ? DatabaseHelper.binDatabase : DatabaseHelper.database);
 
-  insertData(Note note, [bool isBin = false]) async {
-    final database = await _getDatabase(isBin);
+  insertData(Note note, {bool insertIntoBin = false}) async {
+    final database = await _getDatabase(isBin: insertIntoBin);
 
     final String sql = """
-      INSERT INTO note(title, description, dateTime, priority ${_getFirebaseField(note)})
+      INSERT INTO note(title, description, dateTime, priority, firebaseId)
       VALUES (
       ?, ?,
-      '${note.dateTime}', ${note.priority}
-      ${_getFirebaseValue(note)}
+      '${note.dateTime}', ${note.priority}, '${note.firebaseId}'
       )""";
 
     await database.transaction((txn) async {
@@ -75,32 +71,27 @@ class DatabaseHelper {
     });
   }
 
-  String _getFirebaseField(Note note) {
-    return note.firebaseId == null ? "" : ", firebaseId";
-  }
-
-  String _getFirebaseValue(Note note) {
-    return note.firebaseId == null ? "" : ", '${note.firebaseId!}'";
-  }
-
-  updateData(Note note) async {
+  updateData(Note note, {bool updateOnBin = false}) async {
     final String sql = """
     UPDATE note SET
     title = ?, description = ?,
     dateTime = '${note.dateTime}', priority = ${note.priority}
     WHERE id = ${note.id}
     """;
-    Database database = await DatabaseHelper.database;
+    Database database = await _getDatabase(isBin: updateOnBin);
 
     await database.transaction((txn) async {
       int row = await txn.rawUpdate(sql, [note.title, note.description]);
-
       return row;
     });
   }
 
-  deleteData([Note? note, bool isBin = false, List<Note>? notes]) async {
-    Database database = await _getDatabase(isBin);
+  deleteData({
+    Note? note,
+    bool deleteFromBin = false,
+    List<Note>? notes,
+  }) async {
+    Database database = await _getDatabase(isBin: deleteFromBin);
     String? sql;
     if (notes != null) {
       sql = """
@@ -114,8 +105,8 @@ class DatabaseHelper {
     }
     await database.transaction((txn) async {
       int row = await txn.rawDelete(sql ?? "");
-      if (!isBin && note != null) {
-        await insertData(note, true);
+      if (!deleteFromBin && note != null) {
+        await insertData(note, insertIntoBin: true);
       }
       return row;
     });
@@ -129,18 +120,19 @@ class DatabaseHelper {
     return temp;
   }
 
-  Future<List<Map<String, dynamic>>> readData([bool? isBin]) async {
+  Future<List<Map<String, dynamic>>> readData({
+    bool selectFromBin = false,
+  }) async {
     const String sql = "SELECT * FROM note";
-    Database database = await _getDatabase(isBin ?? false);
-    final List<Map<String, dynamic>> data = await database.rawQuery(sql);
-    return data;
+    Database database = await _getDatabase(isBin: selectFromBin);
+    return await database.rawQuery(sql);
   }
 
   clearAllData() async {
     const String sql = "DELETE FROM note WHERE id > 0";
-    Database database = await _getDatabase(false);
+    Database database = await _getDatabase();
     await database.transaction((txn) async => await txn.rawDelete(sql));
-    database = await _getDatabase(true);
+    database = await _getDatabase(isBin: true);
     await database.transaction((txn) async => await txn.rawDelete(sql));
   }
 }

@@ -7,60 +7,202 @@ class InitialController extends GetxController {
   final RxBool _isInternetAvailable = false.obs;
   StreamSubscription<QuerySnapshot>? _subscriptionOfQuerySnapshot;
   StreamSubscription<QuerySnapshot>? _subscriptionOfBinNote;
-  final RxList<Note> _notes = RxList.empty(growable: true);
-  final RxList<Note> _binNotes = RxList.empty(growable: true);
+  final Map<String, dynamic> _oldNotesList = {};
+  final Map<String, dynamic> _oldBinNotesList = {};
   final FirebaseHelper _firebaseHelper = FirebaseHelper();
+  final DatabaseHelper _databaseHelper = DatabaseHelper();
   late bool isFirstTimeCalled;
 
   bool get isLoggedIn => _isLoggedIn.value;
 
   bool get isInternetAvailable => _isInternetAvailable.value;
 
+  NoteListController get _noteController => NoteListController.to;
+
+  BinNoteListController get _binNoteController => BinNoteListController.to;
+
   @override
   void onInit() {
     isFirstTimeCalled = true;
-    _notesListen();
     _changeUser();
     _checkConnectivity();
     super.onInit();
   }
 
-  _notesListen() {
-    _notes.listen((_) {
-      NoteListController.to.clearNote();
-      for (Note note in _) {
-        NoteListController.to.addNote(note);
-      }
-    });
+  // todo load this method with isolate with communicator logic.
+  _onNoteListChanges(Map<String, dynamic> changesNotes) async {
+    for (final note in _noteController.notes) {
+      _oldNotesList[note.firebaseId] = note.toMap();
+    }
+    const useForBin = false;
+    await _addOrUpdateNoteWhenCloudDataChanges(
+      changesNotes: changesNotes,
+      oldNotes: _oldNotesList,
+      useForBin: useForBin,
+    );
 
-    _binNotes.listen((_) {
-      BinNoteListController.to.notes = _binNotes;
-    });
+    _whenDeletesOnCloudNotes(
+      changesNotes: changesNotes,
+      oldNotes: _oldNotesList,
+      useForBin: useForBin,
+    );
+
+    _oldNotesList.clear();
+  }
+
+  _onBinNoteListChanges(Map<String, dynamic> changesNotes) async {
+    for (final note in _binNoteController.notes) {
+      _oldBinNotesList[note.firebaseId] = note.toMap();
+    }
+    const useForBin = true;
+    await _addOrUpdateNoteWhenCloudDataChanges(
+      changesNotes: changesNotes,
+      oldNotes: _oldBinNotesList,
+      useForBin: useForBin,
+    );
+
+    await _whenDeletesOnCloudNotes(
+      changesNotes: changesNotes,
+      oldNotes: _oldBinNotesList,
+      useForBin: useForBin,
+    );
+
+    _oldBinNotesList.clear();
+  }
+
+  _whenDeletesOnCloudNotes({
+    required Map<String, dynamic> changesNotes,
+    required Map<String, dynamic> oldNotes,
+    required bool useForBin,
+  }) async {
+    for (final firebaseId in oldNotes.keys) {
+      if (!changesNotes.containsKey(firebaseId)) {
+        final oldNote = Note.fromMapObj(oldNotes[firebaseId]);
+        await _databaseHelper.deleteData(
+            note: oldNote, deleteFromBin: useForBin);
+        final index = _getIndexOf(oldNote, useForBin);
+        if (index != null) {
+          useForBin
+              ? _binNoteController.notes.removeAt(index)
+              : _noteController.removeNote(null, index);
+        }
+      }
+    }
+  }
+
+  _addOrUpdateNoteWhenCloudDataChanges({
+    required Map<String, dynamic> changesNotes,
+    required Map<String, dynamic> oldNotes,
+    required bool useForBin,
+  }) async {
+    for (final firebaseId in changesNotes.keys) {
+      final newNote = Note.fromMapObj(changesNotes[firebaseId]);
+      if (oldNotes.containsKey(firebaseId)) {
+        final oldNote = Note.fromMapObj(oldNotes[firebaseId]);
+        if (oldNote != newNote) {
+          await _databaseHelper.updateData(newNote, updateOnBin: useForBin);
+
+          final currentNote = Note.fromMapObj(oldNotes[firebaseId]);
+          final index = _getIndexOf(currentNote, useForBin);
+          if (index != null) {
+            if (useForBin) {
+              _binNoteController.notes.removeAt(index);
+              _binNoteController.notes[index] = newNote;
+            } else {
+              _noteController.removeNote(null, index);
+              _noteController.addNote(newNote);
+            }
+          }
+        } else {
+          if (oldNote.id != newNote.id) {
+            await _databaseHelper.insertData(newNote, insertIntoBin: useForBin);
+            final currentNote = Note.fromMapObj(oldNotes[firebaseId]);
+            final index = _getIndexOf(currentNote, useForBin);
+            if (index != null) {
+              if (useForBin) {
+                _binNoteController.notes.removeAt(index);
+                _binNoteController.notes[index] = newNote;
+              } else {
+                _noteController.removeNote(null, index);
+                _noteController.addNote(newNote);
+              }
+            }
+            await background.createATask(
+              taskName: useForBin
+                  ? background.insertIntoBinTask
+                  : background.updateTask,
+              inputData: newNote.toMap(),
+            );
+          }
+        }
+      } else {
+        final currentNotes =
+            useForBin ? _binNoteController.notes : _noteController.notes;
+        for (int i = 0; i < currentNotes.length; i++) {
+          final note = currentNotes[i];
+          if (note == newNote) {
+            if (note.firebaseId != newNote.firebaseId) {
+              await _databaseHelper.updateData(newNote, updateOnBin: useForBin);
+
+              if (useForBin) {
+                _binNoteController.notes.removeAt(i);
+                _binNoteController.notes[i] = newNote;
+              } else {
+                _noteController.removeNote(null, i);
+                _noteController.addNote(newNote);
+              }
+            }
+
+            //todo:- for on changes id.
+          } else {
+            await _databaseHelper.insertData(newNote, insertIntoBin: useForBin);
+            useForBin
+                ? _binNoteController.notes.add(newNote)
+                : _noteController.addNote(newNote);
+            await background.createATask(
+              taskName: useForBin
+                  ? background.insertIntoBinTask
+                  : background.updateTask,
+              inputData: newNote.toMap(),
+            );
+          }
+        }
+      }
+    }
+  }
+
+  int? _getIndexOf(Note note, [bool wantToBin = false]) {
+    final currentNotes =
+        wantToBin ? _binNoteController.notes : _noteController.notes;
+
+    for (int i = 0; i < currentNotes.length; i++) {
+      if (currentNotes[i] == note) return i;
+    }
+
+    return null;
   }
 
   void _initializeSubscriptionOfQuerySnapshot() {
     _subscriptionOfQuerySnapshot = _firebaseHelper
         .getStreamOfQuerySnapshot(wantToUseFromBin: false)
         .listen((event) {
-      final notes = <Note>[];
+      final notes = <String, dynamic>{};
       for (QueryDocumentSnapshot<Map<String, dynamic>> document in event.docs) {
         final json = document.data();
-        final note = Note.fromMapObj(json);
-        notes.add(note);
+        notes[json['firebaseId']] = json;
       }
-      _notes(notes);
+      _onNoteListChanges(notes);
     });
 
     _subscriptionOfBinNote = _firebaseHelper
         .getStreamOfQuerySnapshot(wantToUseFromBin: true)
         .listen((event) {
-      final notes = <Note>[];
+      final notes = <String, dynamic>{};
       for (QueryDocumentSnapshot<Map<String, dynamic>> document in event.docs) {
         final json = document.data();
-        final note = Note.fromMapObj(json);
-        notes.add(note);
+        notes[json['firebaseId']] = json;
       }
-      _binNotes(notes);
+      _onBinNoteListChanges(notes);
     });
   }
 
@@ -73,13 +215,19 @@ class InitialController extends GetxController {
         NoteListController.to.userImage = user.photoURL.toString();
         _initializeSubscriptionOfQuerySnapshot();
         if (!isFirstTimeCalled) {
-          await NoteListController.to.databaseHelper.clearAllData();
+          await _databaseHelper.clearAllData();
+          _noteController.clearNote();
         }
       } else {
+        background.workmanager.cancelAll();
         NoteListController.to.userImage = "assets/guest.jpg";
         _subscriptionOfQuerySnapshot?.cancel();
         _subscriptionOfBinNote?.cancel();
-        NoteListController.to._readDataLocal();
+        if (!isFirstTimeCalled) {
+          await _databaseHelper.clearAllData();
+          _noteController.clearNote();
+        }
+        _noteController.readDataLocal();
       }
 
       isFirstTimeCalled = false;
@@ -120,7 +268,7 @@ class InitialController extends GetxController {
     ));
   }
 
-  // Todo:- check here when try to app in background like when app is closed from recent task.
+  // todo: create background task for when data manipulated on cloud then data will manipulate on local. like delete insert update.
   @override
   void onClose() {
     _subscription.cancel();

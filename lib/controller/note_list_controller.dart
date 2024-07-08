@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -8,6 +9,7 @@ import 'package:keep_notes/models/note.dart';
 import 'package:keep_notes/utils/check_network.dart';
 import 'package:keep_notes/utils/database_helper.dart';
 import 'package:keep_notes/utils/firebase_helper.dart';
+import 'package:keep_notes/utils/background_task.dart' as background;
 
 part 'initial_controller.dart';
 
@@ -42,41 +44,41 @@ class NoteListController extends GetxController {
 
   set userImage(String userImage) => _userImage(userImage);
 
-  List<Note> get notes => List.from(_notes, growable: false);
+  List<Note> get notes => List.from(_notes, growable: true);
 
   bool get isLoading => _isLoading.value;
 
   @override
   void onInit() async {
-    Get.put(InitialController());
     databaseHelper = DatabaseHelper();
+    await readDataLocal();
+    Get.put(InitialController());
     super.onInit();
   }
 
-  _readDataLocal() async {
-    clearNote();
+  readDataLocal() async {
     final jsonData = await databaseHelper.readData();
+    clearNote();
     for (var json in jsonData) {
       addNote(Note.fromMapObj(json));
     }
   }
 
   Future<void> deleteNote(Note note) async {
+    await databaseHelper.deleteData(note: note);
+    removeNote(note);
     if (isLogin) {
-      if (await isInternetAvailable) {
-        await _firebaseHelper.insert(note: note, wantToInsertIntoBin: true);
-        await _firebaseHelper.delete(note: note);
-      } else {
-        // todo:- apple logic when data is not on and try to delete.
-      }
-    } else {
-      await databaseHelper.deleteData(note);
-      removeNote(note);
+      await background.createATask(
+        taskName: background.deleteTask,
+        inputData: note.toMap(),
+      );
     }
   }
 
-  void removeNote(Note note) {
-    _notes.remove(note);
+  void removeNote(Note? note, [int? index]) {
+    if (note == null && index == null) throw "please provide note or index not null.";
+    if (index != null && index < 0) throw "please provide index must 0 or positive number.";
+    index == null ? _notes.remove(note!) : note = _notes.removeAt(index);
     if (note.priority == 2) {
       _normalIndex(_normalIndex.value - 1);
     }

@@ -1,9 +1,11 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:keep_notes/firebase_options.dart';
 import 'package:get/get.dart';
+import 'package:keep_notes/utils/background_task.dart' as background;
 import 'package:keep_notes/utils/database_helper.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -25,6 +27,12 @@ class _SplashScreenState extends State<SplashScreen> {
       await DatabaseHelper.initialize();
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
+      );
+      await FirebaseFirestore.instance.clearPersistence();
+
+      await background.workmanager.initialize(
+        background.callbackDispatcher,
+        isInDebugMode: true,
       );
 
       if (mounted) {

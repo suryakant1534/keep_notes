@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:keep_notes/controller/note_detail_controller.dart';
 import 'package:keep_notes/models/note.dart';
+import 'package:keep_notes/utils/firebase_helper.dart';
 import 'package:keep_notes/widgets/cus_progress_indicator.dart';
 import 'package:keep_notes/widgets/custom_app_bar.dart';
 
@@ -35,6 +36,7 @@ class _NoteDetailState extends State<NoteDetail> {
           description: description,
           dateTime: dateTime,
           priority: priority,
+          firebaseId: FirebaseHelper().getFirebaseId(),
         );
         result = "New note is successfully added.";
       } else {

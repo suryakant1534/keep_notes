@@ -1,4 +1,4 @@
-import 'package:keep_notes/utils/firebase_helper.dart';
+import 'package:keep_notes/utils/background_task.dart' as background;
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:keep_notes/controller/note_list_controller.dart';
@@ -13,7 +13,6 @@ class NoteDetailController extends GetxController {
   late final TextEditingController descriptionController;
   final RxString _priorityValue = 'Low'.obs;
   final List<String> _priorities = List.from(['Low', 'High'], growable: false);
-  final FirebaseHelper _firebaseHelper = FirebaseHelper();
 
   NoteListController get _noteListController => NoteListController.to;
 
@@ -36,16 +35,12 @@ class NoteDetailController extends GetxController {
   }
 
   Future<void> submit(Note note, bool isNew, [int? index]) async {
+    await _addNoteOnLocalDatabase(note, isNew, index);
     if (_noteListController.isLogin) {
-      if (await _noteListController.isInternetAvailable) {
-        isNew
-            ? _firebaseHelper.insert(note: note)
-            : await _firebaseHelper.update(note);
-      } else {
-        // Todo:- store data when internet is available.
-      }
-    } else {
-      await _addNoteOnLocalDatabase(note, isNew, index);
+      await background.createATask(
+        taskName: background.insertTask,
+        inputData: note.toMap(),
+      );
     }
   }
 

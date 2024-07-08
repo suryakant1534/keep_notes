@@ -7,8 +7,21 @@ import 'package:keep_notes/models/note.dart';
 import 'package:keep_notes/widgets/cus_progress_indicator.dart';
 import 'package:keep_notes/widgets/custom_app_bar.dart';
 
-class NoteList extends GetView<NoteListController> {
+class NoteList extends StatefulWidget {
   const NoteList({super.key});
+
+  @override
+  State<NoteList> createState() => _NoteListState();
+}
+
+class _NoteListState extends State<NoteList> {
+  NoteListController get controller => NoteListController.to;
+
+  @override
+  void initState() {
+    controller.readDataLocal();
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {

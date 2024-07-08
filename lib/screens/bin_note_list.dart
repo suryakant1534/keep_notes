@@ -17,7 +17,7 @@ class _BinNoteListState extends State<BinNoteList> {
 
   @override
   void initState() {
-    if (!controller.isLogin) controller.fetchData();
+    controller.fetchData();
     super.initState();
   }
 
@@ -117,12 +117,12 @@ class _BinNoteListState extends State<BinNoteList> {
                               if (value != null) {
                                 if (value) {
                                   controller.selectedNote[controller.isLogin
-                                      ? note.firebaseId!
+                                      ? note.firebaseId
                                       : note.id.toString()] = note;
                                 } else {
                                   controller.selectedNote.remove(
                                       controller.isLogin
-                                          ? note.firebaseId!
+                                          ? note.firebaseId
                                           : note.id.toString());
                                 }
                               }
@@ -139,7 +139,7 @@ class _BinNoteListState extends State<BinNoteList> {
                             controller.selectedNote.remove(note.id);
                           } else {
                             controller.selectedNote[controller.isLogin
-                                ? note.firebaseId!
+                                ? note.firebaseId
                                 : note.id.toString()] = note;
                           }
                         } else {

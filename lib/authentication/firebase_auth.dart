@@ -8,6 +8,7 @@ class FirebaseAuthentication {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<UserCredential?> signInWithGoogle() async {
+    await logout();
     try {
       GoogleSignInAccount? account = await _googleSignIn.signIn();
       if (account != null) {
