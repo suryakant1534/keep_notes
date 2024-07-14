@@ -8,7 +8,6 @@ class FirebaseAuthentication {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<UserCredential?> signInWithGoogle() async {
-    await logout();
     try {
       GoogleSignInAccount? account = await _googleSignIn.signIn();
       if (account != null) {
@@ -36,12 +35,11 @@ class FirebaseAuthentication {
         }
 
         return userCredential;
-      } else {
-        throw "Please choose one account of google.";
       }
     } catch (e) {
       rethrow;
     }
+    return null;
   }
 
   Future logout() async {

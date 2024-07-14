@@ -87,8 +87,7 @@ class _NoteDetailState extends State<NoteDetail> {
       controller.priorityValue = note!.priority == 1 ? 'Low' : 'High';
       isNew = false;
     } else {
-      controller.titleController.clear();
-      controller.descriptionController.clear();
+      controller.clearField();
       controller.priorityValue = 'Low';
       isNew = true;
       note = null;
@@ -200,8 +199,7 @@ class _NoteDetailState extends State<NoteDetail> {
                         color: Colors.deepPurple,
                         onPressed: () async {
                           if (isNew) {
-                            controller.titleController.clear();
-                            controller.descriptionController.clear();
+                            controller.clearField();
                             controller.priorityValue = 'Low';
                             return;
                           }
@@ -209,7 +207,7 @@ class _NoteDetailState extends State<NoteDetail> {
                           await CusProgressIndicator.show(
                             context,
                             futureMethod: () async {
-                              await controller.deleteNote(note!);
+                              await controller.deleteNote(currentIndex);
                             },
                           );
 

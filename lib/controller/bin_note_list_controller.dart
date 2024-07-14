@@ -1,144 +1,146 @@
 import 'package:get/get.dart';
 import 'package:keep_notes/controller/note_list_controller.dart';
 import 'package:keep_notes/models/note.dart';
-import 'package:keep_notes/utils/database_helper.dart';
 import 'package:keep_notes/utils/background_task.dart' as background;
 
 class BinNoteListController extends GetxController {
   static BinNoteListController get to => Get.find<BinNoteListController>();
-  final RxList<Note> _notes = RxList.from([], growable: true);
-  final RxBool _isSelectAll = false.obs;
+  static const selectForBin = true;
+
+  final RxList<Note> _notes = RxList<Note>.empty(growable: true);
+  final RxSet<int> _selectedNote = RxSet<int>();
   final RxBool _isSelectActive = false.obs;
-  final RxBool _isLoading = false.obs;
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
-  final RxMap<String, Note> _selectedNote = RxMap<String, Note>();
 
-  Map<String, Note> get selectedNote => _selectedNote;
+  List<Note> get notes => _notes;
 
-  bool get isLoading => _isLoading.value;
+  bool get isSelectAll => _selectedNote.length == _notes.length;
+
+  NoteListController get _listController => NoteListController.to;
+
+  bool getIsSelectNote(int index) => _selectedNote.contains(index);
 
   bool get isSelectActive => _isSelectActive.value;
 
-  bool get isSelectAll => _isSelectAll.value;
+  bool get showFloatingActionButton => _selectedNote.isNotEmpty;
 
-  bool get isLogin => NoteListController.to.isLogin;
+  void clearNote() => _notes.clear();
 
-  set isSelectAll(bool value) => _isSelectAll(value);
-
-  set notes(List<Note> notes) => _notes(notes);
-
-  List<Note> get notes => List.from(_notes, growable: true);
-
-  void get clear {
-    _isSelectActive(false);
-    selectAll;
+  void onChangeCheckBoxValue(int index) {
+    _selectedNote.contains(index)
+        ? _selectedNote.remove(index)
+        : _selectedNote.add(index);
   }
 
-  void changeSelectActive() {
-    _isSelectActive(!isSelectActive);
-    _isSelectAll(false);
-    selectAll;
-  }
-
-  void changeSelectAll() {
-    _isSelectAll(!isSelectAll);
+  void selectAllOrNot(bool value) {
     _selectedNote.clear();
-    selectAll;
+    if (value) {
+      for (int i = 0; i < _notes.length; i++) {
+        _selectedNote.add(i);
+      }
+    }
   }
 
-  fetchData() async {
-    _isLoading(true);
+  void changeSelectActive([bool isDispose = false]) {
+    _selectedNote.clear();
+    isDispose ? _isSelectActive(false) : _isSelectActive(!isSelectActive);
+  }
+
+  Future<void> fetchData() async {
+    final data = await _listController.databaseHelper
+        .readData(selectFromBin: selectForBin);
     _notes.clear();
-    for (Map<String, dynamic> jsonData
-        in (await _databaseHelper.readData(selectFromBin: true))) {
-      _notes.add(Note.fromMapObj(jsonData));
-    }
-    _isLoading(false);
-  }
-
-  void get selectAll {
-    if (_isSelectAll.value) {
-      for (Note note in _notes) {
-        _selectedNote[isLogin ? note.firebaseId : note.id.toString()] = note;
-      }
-    } else {
-      _selectedNote.clear();
+    for (final Map<String, dynamic> json in data) {
+      _notes.add(Note.fromMapObj(json));
     }
   }
 
-  void get check {
-    _isSelectAll(_selectedNote.length == _notes.length);
+  Future<void> deleteNote(int index) async {
+    final note = _notes.removeAt(index);
+    await _listController.databaseHelper.deleteData(
+      note: note,
+      deleteFromBin: selectForBin,
+    );
+    if (_listController.isLogin) await _createATaskForDelete(note);
   }
 
-  Future<void> deleteNotes([Note? note]) async {
-    _isSelectActive(false);
-    await _deleteNotesFromLocal(note);
-    if (isLogin) await _deleteNotesFromCloud(note);
-  }
-
-  _deleteNotesFromCloud([Note? note]) async {
-    if (note != null) {
-      _createATask(note, background.deleteIntoBinTask);
-    } else {
-      for (Note note in _selectedNote.values) {
-        _createATask(note, background.deleteIntoBinTask);
+  Future<Map<String, dynamic>> _getSelectedData([bool canStore = false]) async {
+    final notes = List<Note>.empty(growable: true);
+    for (final index in _selectedNote) {
+      final note = _notes[index];
+      notes.add(note);
+      await _listController.databaseHelper.deleteData(
+        note: note,
+        deleteFromBin: true,
+      );
+      if (canStore) {
+        await _listController.databaseHelper.insertData(note);
+        _listController.addNote(note);
       }
     }
-  }
+    _selectedNote.clear();
+    final data = <String, dynamic>{};
 
-  _deleteNotesFromLocal([Note? note]) async {
-    if (note != null) {
-      await _databaseHelper.deleteData(note: note, deleteFromBin: true);
+    for (final note in notes) {
       _notes.remove(note);
-    } else {
-      if (selectedNote.length == 1) {
-        selectedNote.forEach((key, value) async {
-          await deleteNotes(value);
-        });
-      } else {
-        final List<Note> notes = List.empty(growable: true);
-        notes.addAll(selectedNote.values);
-        await _databaseHelper.deleteData(deleteFromBin: true, notes: notes);
-        selectedNote.forEach((key, value) {
-          _notes.remove(value);
-        });
-      }
+      final firebaseId = note.firebaseId;
+      List<String> noteValue = [];
+
+      noteValue.add(background.startWithPriority + note.priority.toString());
+      noteValue.add(background.startWithId + note.id.toString());
+      noteValue.add(background.startWithTitle + note.title);
+      noteValue.add(background.startWithDescription + note.description);
+      noteValue.add(background.startWithDate + note.dateTime);
+
+      data[firebaseId] = noteValue;
     }
+    notes.clear();
+    return data;
   }
 
-  Future<void> restoreData([Note? note]) async {
-    _isSelectActive(false);
-    await _restoreFromLocal(note);
-    if (isLogin) await _restoreFromCould(note);
-  }
-
-  _restoreFromCould([Note? note]) async {
-    if (note != null) {
-      await _createATask(note, background.restoreTask);
-    } else {
-      for (Note note in _selectedNote.values) {
-        await _createATask(note, background.restoreTask);
-      }
+  Future<void> deleteSelectedNote() async {
+    final data = await _getSelectedData();
+    if (_listController.isLogin) {
+      await _createABatchTask(background.deleteBatch, data);
     }
+    changeSelectActive(true);
   }
 
-  _createATask(Note note, String taskName) async {
+  Future<void> restoreNote(int index) async {
+    final note = _notes.removeAt(index);
+    await _listController.databaseHelper.deleteData(
+      note: note,
+      deleteFromBin: selectForBin,
+    );
+    await _listController.databaseHelper.insertData(note);
+    _listController.addNote(note);
+    if (_listController.isLogin) await _createATaskForRestore(note);
+  }
+
+  Future<void> restoreSelectedNote() async {
+    final data = await _getSelectedData(true);
+    if (_listController.isLogin) {
+      await _createABatchTask(background.restoreBatch, data);
+    }
+    changeSelectActive(true);
+  }
+
+  Future<void> _createATaskForDelete(Note note) async {
     await background.createATask(
-      taskName: taskName,
+      taskName: background.deleteIntoBinTask,
       inputData: note.toMap(),
     );
   }
 
-  _restoreFromLocal([Note? note]) async {
-    if (note != null) {
-      await _databaseHelper.deleteData(note: note, deleteFromBin: true);
-      await _databaseHelper.insertData(note);
-      _notes.remove(note);
-      NoteListController.to.addNote(note);
-    } else {
-      selectedNote.forEach((key, value) async {
-        await restoreData(value);
-      });
-    }
+  Future<void> _createATaskForRestore(Note note) async {
+    await background.createATask(
+      taskName: background.restoreTask,
+      inputData: note.toMap(),
+    );
   }
+
+  Future<void> _createABatchTask(
+    String taskName,
+    Map<String, dynamic> data,
+  ) async =>
+      await background.createATask(taskName: taskName, inputData: data);
 }

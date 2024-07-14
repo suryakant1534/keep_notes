@@ -3,12 +3,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:keep_notes/controller/note_list_controller.dart';
 import 'package:keep_notes/models/note.dart';
-import 'package:keep_notes/utils/database_helper.dart';
 
 class NoteDetailController extends GetxController {
   static NoteDetailController get to => Get.find<NoteDetailController>();
 
-  late final DatabaseHelper databaseHelper;
   late final TextEditingController titleController;
   late final TextEditingController descriptionController;
   final RxString _priorityValue = 'Low'.obs;
@@ -24,18 +22,13 @@ class NoteDetailController extends GetxController {
 
   @override
   void onInit() {
-    _initialized();
+    titleController = TextEditingController();
+    descriptionController = TextEditingController();
     super.onInit();
   }
 
-  void _initialized() {
-    databaseHelper = DatabaseHelper();
-    titleController = TextEditingController();
-    descriptionController = TextEditingController();
-  }
-
-  Future<void> submit(Note note, bool isNew, [int? index]) async {
-    await _addNoteOnLocalDatabase(note, isNew, index);
+  Future<void> submit(Note note, bool isNew, int currentIndex) async {
+    await _addNoteOnLocal(note, isNew, currentIndex);
     if (_noteListController.isLogin) {
       await background.createATask(
         taskName: background.insertTask,
@@ -44,19 +37,27 @@ class NoteDetailController extends GetxController {
     }
   }
 
-  _addNoteOnLocalDatabase(Note note, bool isNew, [int? index]) async {
+  Future<void> _addNoteOnLocal(Note newNote, bool isNew, int index) async {
     if (isNew) {
-      await databaseHelper.insertData(note);
+      await _noteListController.databaseHelper.insertData(newNote);
     } else {
-      await databaseHelper.updateData(note);
-      Note oldNote = NoteListController.to.notes[index!];
-      NoteListController.to.removeNote(oldNote);
+      _noteListController.removeNote(index);
+      await _noteListController.databaseHelper.updateData(newNote);
     }
-
-    NoteListController.to.addNote(note);
+    _noteListController.addNote(newNote);
   }
 
-  Future<void> deleteNote(Note note) async {
-    await _noteListController.deleteNote(note);
+  deleteNote(int index) async => _noteListController.deleteNote(index);
+
+  void clearField() {
+    titleController.clear();
+    descriptionController.clear();
+  }
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    descriptionController.dispose();
+    super.dispose();
   }
 }

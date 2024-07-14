@@ -9,5 +9,6 @@ class InitialBinding extends Bindings {
     Get.lazyPut(() => NoteListController());
     Get.lazyPut(() => NoteDetailController());
     Get.lazyPut(() => BinNoteListController());
+    Get.put(InitialController());
   }
 }

@@ -53,7 +53,7 @@ class DatabaseHelper {
   Future<Database> _getDatabase({bool isBin = false}) async =>
       await (isBin ? DatabaseHelper.binDatabase : DatabaseHelper.database);
 
-  insertData(Note note, {bool insertIntoBin = false}) async {
+  Future insertData(Note note, {bool insertIntoBin = false}) async {
     final database = await _getDatabase(isBin: insertIntoBin);
 
     final String sql = """
@@ -71,7 +71,7 @@ class DatabaseHelper {
     });
   }
 
-  updateData(Note note, {bool updateOnBin = false}) async {
+  Future updateData(Note note, {bool updateOnBin = false}) async {
     final String sql = """
     UPDATE note SET
     title = ?, description = ?,
@@ -86,7 +86,7 @@ class DatabaseHelper {
     });
   }
 
-  deleteData({
+  Future deleteData({
     Note? note,
     bool deleteFromBin = false,
     List<Note>? notes,
@@ -104,10 +104,7 @@ class DatabaseHelper {
     """;
     }
     await database.transaction((txn) async {
-      int row = await txn.rawDelete(sql ?? "");
-      if (!deleteFromBin && note != null) {
-        await insertData(note, insertIntoBin: true);
-      }
+      int row = await txn.rawDelete(sql!);
       return row;
     });
   }

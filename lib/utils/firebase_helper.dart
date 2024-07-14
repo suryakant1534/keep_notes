@@ -21,7 +21,7 @@ class FirebaseHelper {
   factory FirebaseHelper() => _instance ??= FirebaseHelper._createInstance();
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   User? get user => _auth.currentUser;
 
@@ -31,9 +31,12 @@ class FirebaseHelper {
 
   String get _binNotesUrl => "/keep_notes/$_email/bin_notes";
 
+  DocumentReference docRef(String firebaseId, [useForBin = false]) =>
+      _reference(wantToUseBin: useForBin).doc(firebaseId);
+
   CollectionReference<Map<String, dynamic>> _reference(
           {bool wantToUseBin = false}) =>
-      _firestore.collection(wantToUseBin ? _binNotesUrl : _notesUrl);
+      firestore.collection(wantToUseBin ? _binNotesUrl : _notesUrl);
 
   String getFirebaseId() => _reference().doc().id;
 

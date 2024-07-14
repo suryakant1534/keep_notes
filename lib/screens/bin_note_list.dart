@@ -16,14 +16,8 @@ class _BinNoteListState extends State<BinNoteList> {
   BinNoteListController get controller => BinNoteListController.to;
 
   @override
-  void initState() {
-    controller.fetchData();
-    super.initState();
-  }
-
-  @override
   void dispose() {
-    controller.clear;
+    controller.changeSelectActive(true);
     super.dispose();
   }
 
@@ -42,13 +36,13 @@ class _BinNoteListState extends State<BinNoteList> {
                         value: controller.isSelectAll,
                         onChanged: (bool? value) {
                           if (value != null) {
-                            controller.isSelectAll = value;
-                            controller.selectAll;
+                            controller.selectAllOrNot(value);
                           }
                         },
                       ),
                       InkWell(
-                        onTap: controller.changeSelectAll,
+                        onTap: () =>
+                            controller.selectAllOrNot(!controller.isSelectAll),
                         child: const Text(
                           "Select All",
                           style: TextStyle(color: Colors.white),
@@ -79,9 +73,6 @@ class _BinNoteListState extends State<BinNoteList> {
       ),
       body: Obx(
         () {
-          if (controller.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
           if (controller.notes.isEmpty) {
             return const Center(
               child: Text(
@@ -96,37 +87,15 @@ class _BinNoteListState extends State<BinNoteList> {
           return ListView.builder(
             itemCount: controller.notes.length,
             itemBuilder: (context, index) {
-              if (controller.isLoading) {
-                return const Center(
-                    child: CircularProgressIndicator(
-                  color: Colors.deepPurple,
-                ));
-              }
-
               final Note note = controller.notes[index];
               return Row(
                 children: [
                   Obx(
                     () => controller.isSelectActive
                         ? Checkbox(
-                            value: controller.selectedNote.containsKey(
-                                controller.isLogin
-                                    ? note.firebaseId
-                                    : note.id.toString()),
+                            value: controller.getIsSelectNote(index),
                             onChanged: (value) {
-                              if (value != null) {
-                                if (value) {
-                                  controller.selectedNote[controller.isLogin
-                                      ? note.firebaseId
-                                      : note.id.toString()] = note;
-                                } else {
-                                  controller.selectedNote.remove(
-                                      controller.isLogin
-                                          ? note.firebaseId
-                                          : note.id.toString());
-                                }
-                              }
-                              controller.check;
+                              controller.onChangeCheckBoxValue(index);
                             },
                           )
                         : const SizedBox(),
@@ -135,17 +104,11 @@ class _BinNoteListState extends State<BinNoteList> {
                     child: ListTile(
                       onTap: () async {
                         if (controller.isSelectActive) {
-                          if (controller.selectedNote.containsKey(note.id)) {
-                            controller.selectedNote.remove(note.id);
-                          } else {
-                            controller.selectedNote[controller.isLogin
-                                ? note.firebaseId
-                                : note.id.toString()] = note;
-                          }
+                          controller.onChangeCheckBoxValue(index);
                         } else {
                           final String? result = (await Get.toNamed(
                             "bin_detail",
-                            arguments: {"note": note},
+                            arguments: {"note": note, 'index': index},
                           )) as String?;
                           if (context.mounted) {
                             if (result != null) {
@@ -198,7 +161,7 @@ class _BinNoteListState extends State<BinNoteList> {
                                       await CusProgressIndicator.show(
                                         context,
                                         futureMethod: () async =>
-                                            await controller.restoreData(note),
+                                            await controller.restoreNote(index),
                                       );
                                       _getSnackBar("Restored");
                                     },
@@ -209,7 +172,7 @@ class _BinNoteListState extends State<BinNoteList> {
                                   ),
                                   IconButton(
                                     onPressed: () {
-                                      _showAlertDialog(note);
+                                      _showAlertDialog(index);
                                     },
                                     icon: const Icon(
                                       Icons.delete,
@@ -229,7 +192,7 @@ class _BinNoteListState extends State<BinNoteList> {
         },
       ),
       floatingActionButton: Obx(() => controller.isSelectActive
-          ? controller.selectedNote.isNotEmpty
+          ? controller.showFloatingActionButton
               ? Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -238,7 +201,7 @@ class _BinNoteListState extends State<BinNoteList> {
                         await CusProgressIndicator.show(
                           context,
                           futureMethod: () async =>
-                              await controller.restoreData(),
+                              await controller.restoreSelectedNote(),
                         );
                         _getSnackBar("Restore");
                       },
@@ -268,15 +231,13 @@ class _BinNoteListState extends State<BinNoteList> {
 
   _getSnackBar([String message = "Deleted"]) {
     ScaffoldMessenger.of(context).clearSnackBars();
-    String note;
-    controller.selectedNote.length > 1 ? note = "notes" : note = "note";
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text("$message $note successfully"),
+      content: Text("$message note(s) successfully"),
       backgroundColor: Colors.deepPurple,
     ));
   }
 
-  _showAlertDialog([Note? note]) {
+  _showAlertDialog([int? index]) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -322,8 +283,11 @@ class _BinNoteListState extends State<BinNoteList> {
                       Get.back();
                       await CusProgressIndicator.show(
                         context,
-                        futureMethod: () async =>
-                            await controller.deleteNotes(note),
+                        futureMethod: () async {
+                          index == null
+                              ? await controller.deleteSelectedNote()
+                              : await controller.deleteNote(index);
+                        },
                       );
                       _getSnackBar();
                     },

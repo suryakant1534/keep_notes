@@ -1,27 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:keep_notes/controller/note_list_controller.dart';
 import 'package:keep_notes/models/note.dart';
 import 'package:keep_notes/widgets/cus_progress_indicator.dart';
 import 'package:keep_notes/widgets/custom_app_bar.dart';
 
-class NoteList extends StatefulWidget {
+class NoteList extends GetView<NoteListController> {
   const NoteList({super.key});
-
-  @override
-  State<NoteList> createState() => _NoteListState();
-}
-
-class _NoteListState extends State<NoteList> {
-  NoteListController get controller => NoteListController.to;
-
-  @override
-  void initState() {
-    controller.readDataLocal();
-    super.initState();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,13 +24,8 @@ class _NoteListState extends State<NoteList> {
       ),
       appBar: CustomAppBar.cusAppBar(title: "Notes"),
       body: Obx(
-        () => SizedBox(
-          child: controller.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : controller.notes.isEmpty
-                  ? _getEmpty(context)
-                  : _getNoteListView(),
-        ),
+        () =>
+            controller.notes.isEmpty ? _getEmpty(context) : _getNoteListView(),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
@@ -94,7 +75,7 @@ class _NoteListState extends State<NoteList> {
                 await CusProgressIndicator.show(
                   context,
                   futureMethod: () async {
-                    await controller.deleteNote(note);
+                    await controller.deleteNote(index);
                   },
                 );
                 if (context.mounted) _showSnackBar(context);
@@ -173,12 +154,12 @@ class _NoteListState extends State<NoteList> {
           () {
             if (!controller.isLogin) {
               return CircleAvatar(
-                backgroundImage: AssetImage(controller.userImage),
+                backgroundImage: const AssetImage("assets/guest.jpg"),
                 radius: Get.width * .1,
               );
             } else {
               return CircleAvatar(
-                backgroundImage: NetworkImage(controller.userImage),
+                backgroundImage: NetworkImage(controller.user!.photoURL!),
                 radius: Get.width * .1,
               );
             }
@@ -199,23 +180,11 @@ class _NoteListState extends State<NoteList> {
           return controller.notes.isNotEmpty
               ? MaterialButton(
                   onPressed: () async {
-                    final notes = controller.notes;
                     Get.back();
-                    _showProgressIndicator(context);
-                    await controller.login();
-                    if (!controller.isLogin && controller.isFailedLogin) {
-                      Get.back();
-                      if (context.mounted) {
-                        _showAlertDialog(context, controller.errorMessage);
-                      }
-                    } else {
-                      await controller.syncNow(notes);
-                      Get.back();
-                      if (context.mounted) {
-                        _showAlertDialog(context, "Data sync successfully.");
-                      }
-                      await HapticFeedback.vibrate();
-                    }
+                    await CusProgressIndicator.show(
+                      context,
+                      futureMethod: controller.syncNow,
+                    );
                   },
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -234,16 +203,10 @@ class _NoteListState extends State<NoteList> {
               : MaterialButton(
                   onPressed: () async {
                     Get.back();
-                    _showProgressIndicator(context);
-                    await controller.login();
-                    Get.back();
-                    if (!controller.isLogin && controller.isFailedLogin) {
-                      if (context.mounted) {
-                        _showAlertDialog(context, controller.errorMessage);
-                      }
-                    } else {
-                      await HapticFeedback.vibrate();
-                    }
+                    await CusProgressIndicator.show(
+                      context,
+                      futureMethod: controller.login,
+                    );
                   },
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -297,7 +260,6 @@ class _NoteListState extends State<NoteList> {
               ? MaterialButton(
                   onPressed: () async {
                     await controller.logout();
-                    await HapticFeedback.vibrate();
                   },
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -328,24 +290,6 @@ class _NoteListState extends State<NoteList> {
               color: Colors.deepPurple),
         ),
       ),
-    );
-  }
-
-  void _showProgressIndicator(BuildContext context) {
-    const dialog = AlertDialog(
-      title: Text("Please Wait..", style: TextStyle(color: Colors.deepPurple)),
-      content: SizedBox(
-        height: 100,
-        child: Center(
-          child: CircularProgressIndicator(),
-        ),
-      ),
-    );
-
-    showDialog(
-      context: context,
-      builder: (context) => dialog,
-      barrierDismissible: false,
     );
   }
 }

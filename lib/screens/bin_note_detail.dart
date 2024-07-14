@@ -13,7 +13,8 @@ class BinNoteDetail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     BinNoteListController controller = BinNoteListController.to;
-    Note note = Get.arguments['note'];
+    final note = Get.arguments['note'] as Note;
+    final index = Get.arguments['index'] as int;
 
     return PopScope(
       canPop: true,
@@ -28,7 +29,7 @@ class BinNoteDetail extends StatelessWidget {
               onPressed: () async {
                 await CusProgressIndicator.show(
                   context,
-                  futureMethod: () async => await controller.restoreData(note),
+                  futureMethod: () async => await controller.restoreNote(index),
                 );
                 Get.back(result: "Note Restore Successfully.");
               },
@@ -38,7 +39,7 @@ class BinNoteDetail extends StatelessWidget {
               onPressed: () async {
                 await CusProgressIndicator.show(
                   context,
-                  futureMethod: () async => await controller.deleteNotes(note),
+                  futureMethod: () async => await controller.deleteNote(index),
                 );
                 Get.back(result: "Note Deleted Successfully");
               },

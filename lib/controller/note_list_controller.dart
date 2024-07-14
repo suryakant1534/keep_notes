@@ -1,12 +1,11 @@
 import 'dart:async';
-import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:keep_notes/authentication/firebase_auth.dart';
 import 'package:keep_notes/controller/bin_note_list_controller.dart';
 import 'package:keep_notes/models/note.dart';
-import 'package:keep_notes/utils/check_network.dart';
 import 'package:keep_notes/utils/database_helper.dart';
 import 'package:keep_notes/utils/firebase_helper.dart';
 import 'package:keep_notes/utils/background_task.dart' as background;
@@ -16,57 +15,35 @@ part 'initial_controller.dart';
 class NoteListController extends GetxController {
   static NoteListController get to => Get.find<NoteListController>();
 
-  final RxList<Note> _notes = <Note>[].obs;
+  final RxList<Note> _notes = RxList.empty(growable: true);
   final RxInt _normalIndex = 0.obs;
-  late final DatabaseHelper databaseHelper;
-  final RxBool _isLoading = false.obs;
+  final DatabaseHelper databaseHelper = DatabaseHelper();
   final FirebaseAuthentication _auth = FirebaseAuthentication();
-  final RxString _userImage = "assets/guest.jpg".obs;
-  final RxBool _isFailedLogin = false.obs;
-  final RxString _errorMessage = "".obs;
   final FirebaseHelper _firebaseHelper = FirebaseHelper();
 
   InitialController get _initialController => InitialController.to;
 
-  String get errorMessage => _errorMessage.value;
-
-  bool get isFailedLogin => _isFailedLogin.value;
-
-  Future<bool> get isInternetAvailable async =>
-      await CheckNetwork.isInternetAvailable();
-
   bool get isLogin => _initialController.isLoggedIn;
 
-  String get userName =>
-      _firebaseHelper.user?.displayName.toString() ?? "Guest";
+  String get userName => _firebaseHelper.user?.displayName ?? "Guest";
 
-  String get userImage => _userImage.value;
+  User? get user => _firebaseHelper.user;
 
-  set userImage(String userImage) => _userImage(userImage);
+  List<Note> get notes => List.from(_notes, growable: false);
 
-  List<Note> get notes => List.from(_notes, growable: true);
-
-  bool get isLoading => _isLoading.value;
-
-  @override
-  void onInit() async {
-    databaseHelper = DatabaseHelper();
-    await readDataLocal();
-    Get.put(InitialController());
-    super.onInit();
-  }
-
-  readDataLocal() async {
-    final jsonData = await databaseHelper.readData();
+  Future<void> _readDataLocal() async {
+    final List<Map<String, dynamic>> data = await databaseHelper.readData();
     clearNote();
-    for (var json in jsonData) {
+    for (final Map<String, dynamic> json in data) {
       addNote(Note.fromMapObj(json));
     }
   }
 
-  Future<void> deleteNote(Note note) async {
+  Future<void> deleteNote(int index) async {
+    final note = removeNote(index);
     await databaseHelper.deleteData(note: note);
-    removeNote(note);
+    await databaseHelper.insertData(note, insertIntoBin: true);
+    _initialController._binController.notes.add(note);
     if (isLogin) {
       await background.createATask(
         taskName: background.deleteTask,
@@ -75,37 +52,21 @@ class NoteListController extends GetxController {
     }
   }
 
-  void removeNote(Note? note, [int? index]) {
-    if (note == null && index == null) throw "please provide note or index not null.";
-    if (index != null && index < 0) throw "please provide index must 0 or positive number.";
-    index == null ? _notes.remove(note!) : note = _notes.removeAt(index);
+  Note removeNote(int index) {
+    final note = _notes.removeAt(index);
     if (note.priority == 2) {
       _normalIndex(_normalIndex.value - 1);
     }
+    return note;
   }
 
-  void addNote(Note note) async {
+  void addNote(Note note) {
     if (note.priority == 2) {
       _notes.insert(0, note);
       _normalIndex(_normalIndex.value + 1);
-      return;
+    } else {
+      _notes.insert(_normalIndex.value, note);
     }
-    _notes.insert(_normalIndex.value, note);
-  }
-
-  login() async {
-    try {
-      final user = await _auth.signInWithGoogle();
-      _isFailedLogin(false);
-      return user;
-    } catch (e) {
-      _isFailedLogin(true);
-      _errorMessage(e.toString());
-    }
-  }
-
-  logout() async {
-    await _auth.logout();
   }
 
   void clearNote() {
@@ -113,14 +74,45 @@ class NoteListController extends GetxController {
     _normalIndex(0);
   }
 
-  Future<void> syncNow(List<Note> notes) async {
-    if (!isLogin) return;
-    if (await CheckNetwork.isInternetAvailable()) {
-      for (final Note note in notes) {
-        await _firebaseHelper.insert(note: note);
+  Future<User?> login() async {
+    final user = await _auth.signInWithGoogle();
+    await HapticFeedback.vibrate();
+    return user?.user;
+  }
+
+  Future<void> logout() async {
+    for (final sub in _initialController._subscriptions) {
+      await sub.cancel();
+    }
+    _initialController._subscriptions.clear();
+    await background.workmanager.cancelAll();
+    await _auth.logout();
+    await HapticFeedback.vibrate();
+  }
+
+  Future<void> syncNow() async {
+    final notes = List<Note>.from(_notes, growable: false);
+    final user = await login();
+    if (user != null) {
+      Map<String, dynamic> data = {};
+      for (final note in notes) {
+        List<String> noteValue = [];
+
+        noteValue.add(background.startWithDate + note.dateTime);
+        noteValue.add(background.startWithDescription + note.description);
+        noteValue.add(background.startWithTitle + note.title);
+        noteValue.add(background.startWithId + note.id.toString());
+        noteValue.add(background.startWithPriority + note.priority.toString());
+
+        data[note.firebaseId] = noteValue;
       }
-    } else {
-      //todo:- when network is available then work on there data to sync.
+      clearNote();
+      databaseHelper.clearAllData();
+      print(data.length);
+      await background.createATask(
+        taskName: background.insertBatch,
+        inputData: data,
+      );
     }
   }
 }

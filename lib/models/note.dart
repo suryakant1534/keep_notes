@@ -71,6 +71,8 @@ class Note {
     value += title.hashCode;
     value += priority.hashCode;
     value += description.hashCode;
+    value += id.hashCode;
+    value += dateTime.hashCode;
     return value.hashCode;
   }
 }
