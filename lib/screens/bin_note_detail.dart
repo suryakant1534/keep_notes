@@ -18,7 +18,7 @@ class BinNoteDetail extends StatelessWidget {
 
     return PopScope(
       canPop: true,
-      onPopInvoked: (_) {
+      onPopInvokedWithResult: (canPop, result) {
         ScaffoldMessenger.of(context).clearSnackBars();
       },
       child: Scaffold(

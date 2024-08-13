@@ -108,7 +108,6 @@ class NoteListController extends GetxController {
       }
       clearNote();
       databaseHelper.clearAllData();
-      print(data.length);
       await background.createATask(
         taskName: background.insertBatch,
         inputData: data,
